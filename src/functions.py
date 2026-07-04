@@ -118,24 +118,32 @@ def _format_for_lightweight_charts(df: pd.DataFrame) -> pd.DataFrame:
         print(f"Error formatting data for lightweight-charts: {e}")
         return pd.DataFrame()
     
+
 def fetch_sp500_tickers() -> List[str]:
     """Fetches the list of S&P 500 ticker symbols from Wikipedia.
+    
+    Bypasses the 403 Forbidden error by providing a standard browser 
+    User-Agent header.
     Returns:
         List[str]: A list containing the ticker symbols of the S&P 500 companies.
     """
     url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     
-    # pandas.read_html parses all HTML tables on the page into a list of DataFrames
-    tables = pd.read_html(url)
+    # We define a User-Agent that looks like a normal Google Chrome browser
+    custom_headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
     
-    # The first table contains the S&P 500 constituents
+    # Pass the headers using storage_options
+    tables = pd.read_html(url, storage_options=custom_headers)
+    
+    # The first table on the page is the S&P 500 constituents table
     sp500_table = tables[0]
     
-    # Extract the 'Symbol' column as a list
+    # Extract the 'Symbol' column
     tickers = sp500_table['Symbol'].tolist()
     
-    # Note: Wikipedia sometimes uses dots in symbols (e.g., 'BRK.B'), 
-    # but yfinance expects hyphens ('BRK-B'). We must clean this up.
+    # Clean up tickers (e.g., BRK.B to BRK-B) for yfinance compatibility
     clean_tickers = [ticker.replace('.', '-') for ticker in tickers]
     
     return clean_tickers
